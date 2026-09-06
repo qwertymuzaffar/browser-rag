@@ -22,7 +22,9 @@ jobs:
         with:
           node-version: 22
           cache: npm
-      - run: npm ci
+      # --ignore-scripts: onnxruntime-node (Node-only dep of transformers.js,
+      # unused by the browser build) has a flaky binary-download postinstall.
+      - run: npm ci --ignore-scripts
       - run: npx ng build --base-href=/browser-rag/
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3
