@@ -1,0 +1,79 @@
+<header class="hero">
+  <div class="hero-text">
+    <h1>browser-rag</h1>
+    <p>
+      A RAG retrieval pipeline running entirely in your browser -
+      <a href="https://www.npmjs.com/package/chunklet">chunklet</a> splits the document,
+      <a href="https://www.npmjs.com/package/ngx-transformers">ngx-transformers</a> embeds it on-device,
+      <a href="https://www.npmjs.com/package/minivec">minivec</a> searches it. No server, no API key.
+    </p>
+  </div>
+  <ngx-model-progress class="model" [status]="embedder.status()" [progress]="embedder.progress()" />
+</header>
+
+<main>
+  <section class="pane doc-pane">
+    <div class="pane-head">
+      <h2>Document</h2>
+      <div class="pane-actions">
+        @if (chunkCount()) {
+          <span class="stat">{{ chunkCount() }} chunks</span>
+        }
+        <button class="ghost" (click)="editing.set(!editing())">{{ editing() ? 'Done' : 'Edit' }}</button>
+        <button (click)="buildIndex()" [disabled]="busy() || !doc().trim()">
+          {{ indexed() ? 'Re-index' : embedder.ready() ? 'Index document' : 'Load model & index' }}
+        </button>
+      </div>
+    </div>
+    @if (indexProgress(); as p) {
+      <div class="embed-progress">
+        <div class="bar"><div class="fill" [style.width.%]="(100 * p.done) / p.total"></div></div>
+        <span>embedding {{ p.done }}/{{ p.total }}</span>
+      </div>
+    }
+    @if (editing()) {
+      <textarea [value]="doc()" (input)="onDocEdited($any($event.target).value)" spellcheck="false"></textarea>
+    } @else {
+      <pre class="doc">{{ parts().before }}<mark>{{ parts().match }}</mark>{{ parts().after }}</pre>
+    }
+  </section>
+
+  <section class="pane ask-pane">
+    <div class="pane-head"><h2>Ask the document</h2></div>
+    <div class="ask-row">
+      <input
+        #q
+        type="text"
+        placeholder="how do I theme the kanban board?"
+        [disabled]="!indexed() || busy()"
+        (keydown.enter)="ask(q.value)"
+      />
+      <button (click)="ask(q.value)" [disabled]="!indexed() || busy()">Ask</button>
+    </div>
+    @if (!indexed() && !indexProgress()) {
+      <p class="hint">Index the document first - the embedding model (~23 MB) downloads once, then everything is local.</p>
+    }
+    @if (hits(); as results) {
+      <ol class="hits">
+        @for (hit of results; track hit.start) {
+          <li (click)="select(hit.start, hit.end)" [class.active]="highlight()?.start === hit.start">
+            <div class="hit-top">
+              <span class="score">{{ hit.score.toFixed(3) }}</span>
+              <span class="crumbs">{{ crumb(hit.headings) }}</span>
+            </div>
+            <p class="snippet">{{ hit.snippet }}</p>
+          </li>
+        }
+      </ol>
+      <p class="hint">Click a result to highlight the exact passage - offsets come straight from chunklet.</p>
+    }
+  </section>
+</main>
+
+<footer>
+  Built with
+  <a href="https://github.com/qwertymuzaffar/chunklet">chunklet</a> +
+  <a href="https://github.com/qwertymuzaffar/ngx-transformers">ngx-transformers</a> +
+  <a href="https://github.com/qwertymuzaffar/minivec">minivec</a>
+  - by <a href="https://github.com/qwertymuzaffar">Muzaffar Qosimov</a>
+</footer>
